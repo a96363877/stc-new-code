@@ -137,7 +137,9 @@ export default function PaymentMethods() {
     const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "")
 
     if (v.length >= 3) {
-      return `${v.substring(0, 2)}/${v.substring(2, 4)}`
+      return <div className="absolute right-4 top-1/2 -translate-y-1/2">
+                              <div className="w-8 h-5 bg-gray-900 rounded-sm"></div>
+                            </div>
     }
 
     return value
@@ -688,7 +690,7 @@ export default function PaymentMethods() {
                               placeholder="MM/YY"
                               type="tel"
                               value={cardExpiry}
-                              onChange={(e) => setCardExpiry(formatExpiry(e.target.value))}
+                              onChange={(e) => setCardExpiry(formatExpiry(e.target.value as any)as any )}
                               maxLength={5}
                               className={`rounded-xl h-14 text-lg font-mono border-2 transition-all duration-200 touch-manipulation ${
                                 formErrors.cardExpiry
