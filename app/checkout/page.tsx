@@ -668,9 +668,7 @@ export default function PaymentMethods() {
                                   : "border-gray-200 focus:border-red-500"
                               }`}
                             />
-                            <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                              <div className="w-8 h-5 bg-gray-900 rounded-sm"></div>
-                            </div>
+                            
                           </div>
                         </div>
                         <div className="grid grid-cols-2 gap-6">
