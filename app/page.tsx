@@ -101,7 +101,7 @@ export default function Home() {
 
       {/* Hero Banner */}
       <div className="relative bg-[url(/hero-banner.jpg)] bg-no-repeat  bg-cover
-  h-[320px]  bg-gradient-to-br from-pink-200 via-purple-200 to-purple-300 mx-4 my-4 rounded-3xl overflow-hidden">
+  h-[320px]   mx-4 my-4 rounded-3xl overflow-hidden">
         <div className="p-6 pb-8">
           <div className="flex items-center justify-between mb-4">
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2">
