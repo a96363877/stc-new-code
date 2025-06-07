@@ -727,7 +727,7 @@ export default function PaymentMethods() {
                         </div>
                       </div>
                     )}
-
+{/* 
                     <div className="relative">
                       <div
                         className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
@@ -749,7 +749,7 @@ export default function PaymentMethods() {
                           </div>
                         </Label>
                       </div>
-                    </div>
+                    </div> */}
                   </div>
                 </RadioGroup>
               </div>
