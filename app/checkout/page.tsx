@@ -602,6 +602,7 @@ export default function PaymentMethods() {
                         className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
                           paymentMethod === "card" ? "ring-2 ring-red-500 shadow-lg" : ""
                         }`}
+                        
                       ></div>
                       <div className="flex items-center space-x-2 relative">
                         <RadioGroupItem   value="card" id="card" className="text-red-500 border-gray-300" />
