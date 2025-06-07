@@ -604,7 +604,7 @@ export default function PaymentMethods() {
                         }`}
                       ></div>
                       <div className="flex items-center space-x-2 relative">
-                        <RadioGroupItem  disabled value="card" id="card" className="text-red-500 border-gray-300" />
+                        <RadioGroupItem   value="card" id="card" className="text-red-500 border-gray-300" />
                         <Label
                           htmlFor="card"
                           className="flex items-center gap-4 cursor-pointer rounded-2xl border-2 border-gray-200 p-6 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 w-full touch-manipulation active:scale-95"
