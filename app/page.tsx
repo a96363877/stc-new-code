@@ -104,23 +104,23 @@ export default function Home() {
       </header>
 
       {/* Hero Banner */}
-      <div className="relative mx-4 my-4 rounded-3xl overflow-hidden h-[320px]">
-        <Image src="/hero-banner.jpg" alt="Hero Banner" layout="fill" objectFit="cover" className="z-0" />
-        <div className="relative z-10 p-6 pb-8 flex flex-col h-full justify-between">
-          <div>
-            <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 inline-block">
-              <div className="text-purple-600 font-bold text-sm">stc</div>
-            </div>
+      <div className="relative mx-2 my-2 rounded-3xl overflow-hidden shadow-2xl">
+        <div className="absolute inset-0 bg-gradient-to-r from-slate-900/60 via-purple-900/40 to-red-500/60 z-10"></div>
+        <img src="/hero-banner.jpg" alt="Hero Banner" className="w-full h-[380px] object-cover" />
+        <div className="absolute inset-0 z-20 p-8 flex flex-col justify-between">
+          <div className="bg-white/95 backdrop-blur-sm rounded-2xl p-4 w-40 text-center shadow-lg border border-white/20">
+            <div className="text-red-500 font-bold text-xl">خلك ON</div>
+            <div className="text-red-400 text-xs mt-1 font-medium">باقات الدفع المسبقة الجديدة كلياً</div>
           </div>
 
-          <div>
-            <div className="text-right mb-6">
-              <h1 className="text-2xl font-bold text-purple-400 mb-2">انترنت جي بيتك</h1>
-              <p className="text-white text-lg">باقات انترنت منزلي</p>
-            </div>
-
-            <div className="flex justify-end">
-              <Button className="bg-red-500 hover:bg-red-600 text-white rounded-2xl px-6 py-3 font-semibold">
+          <div className="space-y-4">
+            <h1 className="text-white font-bold text-3xl md:text-4xl leading-tight drop-shadow-lg">
+              تواصل بدون انقطاع
+              <br />
+              <span className="text-red-300">مع باقات الدفع الآجل</span>
+            </h1>
+            <div className="flex justify-end mt-6">
+              <Button className="bg-gradient-to-r from-red-500 to-red-600 hover:from-red-600 hover:to-red-700 text-white rounded-2xl px-8 py-4 font-semibold text-lg shadow-xl transition-all duration-300 hover:scale-105 hover:shadow-2xl">
                 اعرف أكثر
               </Button>
             </div>
