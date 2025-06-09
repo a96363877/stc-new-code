@@ -297,7 +297,7 @@ export default function Home() {
           <Button className="bg-white text-red-500 hover:bg-gray-100 rounded-2xl py-3 font-semibold">تحدث معنا</Button>
           <Button
             variant="outline"
-            className="border-white text-white hover:bg-white hover:text-red-500 rounded-2xl py-3 font-semibold"
+            className="border-white text-red-500 hover:bg-white hover:text-red-500 rounded-2xl py-3 font-semibold"
           >
             خدمة العملاء والدعم الفني
           </Button>
