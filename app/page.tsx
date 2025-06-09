@@ -105,7 +105,7 @@ export default function Home() {
 
       {/* Hero Banner */}
       <div className="relative mx-4 my-4 rounded-3xl overflow-hidden h-[320px]">
-        <Image src="/hero-banner.png" alt="Hero Banner" layout="fill" objectFit="cover" className="z-0" />
+        <Image src="/hero-banner.jpg" alt="Hero Banner" layout="fill" objectFit="cover" className="z-0" />
         <div className="relative z-10 p-6 pb-8 flex flex-col h-full justify-between">
           <div>
             <div className="bg-white/90 backdrop-blur-sm rounded-2xl px-4 py-2 inline-block">
