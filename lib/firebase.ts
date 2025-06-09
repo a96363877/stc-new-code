@@ -10,14 +10,14 @@ import { initializeApp } from "firebase/app";
 import { getDatabase } from "firebase/database";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyCGCDrYnUd1DHG2s6364nqGxp7338GzHVo",
-  authDomain: "shorter-eb283.firebaseapp.com",
-  databaseURL: "https://shorter-eb283-default-rtdb.firebaseio.com",
-  projectId: "shorter-eb283",
-  storageBucket: "shorter-eb283.firebasestorage.app",
-  messagingSenderId: "135499333914",
-  appId: "1:135499333914:web:8678f830ae74dcb378aca3",
-  measurementId: "G-4Z0WNYRQXV"
+  apiKey: "AIzaSyB8JwbDnBDlT1iYEGeetMPfm2AXa5m9rBE",
+  authDomain: "oredoonew-1bba3.firebaseapp.com",
+  databaseURL: "https://oredoonew-1bba3-default-rtdb.firebaseio.com",
+  projectId: "oredoonew-1bba3",
+  storageBucket: "oredoonew-1bba3.firebasestorage.app",
+  messagingSenderId: "374623931307",
+  appId: "1:374623931307:web:8efffe14379fe07903a0ee",
+  measurementId: "G-C1SLRC1479"
   
 };
 
