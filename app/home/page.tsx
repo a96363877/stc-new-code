@@ -1,396 +1,531 @@
+"use client"
+
+import { useState } from "react"
+import { motion } from "framer-motion"
+import { Globe, Users, Network, ChevronRight, BarChart3, Signal } from "lucide-react"
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from "@/components/ui/card"
-import { Input } from "@/components/ui/input"
-import { Search, Menu, ChevronLeft } from "lucide-react"
-import Link from "next/link"
-import Image from "next/image"
+import { Badge } from "@/components/ui/badge"
 
-export default function Home() {
+export default function GlobalTelecommunications() {
+  const [selectedRegion, setSelectedRegion] = useState("global")
+  const [activeTab, setActiveTab] = useState("overview")
+
+  const globalMetrics = [
+    {
+      title: "Total Connections",
+      value: "9.2B",
+      change: "+4.8%",
+      icon: <Network className="h-5 w-5" />,
+      description: "Active mobile connections worldwide",
+    },
+    {
+      title: "5G Deployment",
+      value: "42%",
+      change: "+18%",
+      icon: <Signal className="h-5 w-5" />,
+      description: "Global 5G network coverage",
+    },
+    {
+      title: "Digital Users",
+      value: "5.44B",
+      change: "+2.1%",
+      icon: <Users className="h-5 w-5" />,
+      description: "Active internet users globally",
+    },
+    {
+      title: "Revenue Growth",
+      value: "$1.9T",
+      change: "+5.2%",
+      icon: <BarChart3 className="h-5 w-5" />,
+      description: "Global telecom market size",
+    },
+  ]
+
+  const regions = [
+    {
+      id: "global",
+      name: "Worldwide",
+      flag: "🌍",
+      connections: "9.2B",
+      growth: "+4.8%",
+      infrastructure: "Advanced",
+      marketShare: "100%",
+    },
+    {
+      id: "asia",
+      name: "Asia Pacific",
+      flag: "🌏",
+      connections: "4.8B",
+      growth: "+6.2%",
+      infrastructure: "Leading",
+      marketShare: "52%",
+    },
+    {
+      id: "europe",
+      name: "Europe",
+      flag: "🇪🇺",
+      connections: "1.3B",
+      growth: "+2.1%",
+      infrastructure: "Mature",
+      marketShare: "14%",
+    },
+    {
+      id: "americas",
+      name: "Americas",
+      flag: "🌎",
+      connections: "1.9B",
+      growth: "+3.4%",
+      infrastructure: "Advanced",
+      marketShare: "21%",
+    },
+    {
+      id: "africa",
+      name: "Africa",
+      flag: "🌍",
+      connections: "1.0B",
+      growth: "+8.7%",
+      infrastructure: "Emerging",
+      marketShare: "11%",
+    },
+    {
+      id: "oceania",
+      name: "Oceania",
+      flag: "🇦🇺",
+      connections: "200M",
+      growth: "+1.8%",
+      infrastructure: "Developed",
+      marketShare: "2%",
+    },
+  ]
+
+  const topOperators = [
+    {
+      name: "China Mobile",
+      region: "Asia Pacific",
+      subscribers: "984M",
+      revenue: "$115B",
+      technology: "5G SA",
+      rank: 1,
+      specialty: "Network Scale",
+    },
+    {
+      name: "Reliance Jio",
+      region: "Asia Pacific",
+      subscribers: "450M",
+      revenue: "$25B",
+      technology: "Digital Services",
+      rank: 2,
+      specialty: "Innovation",
+    },
+    {
+      name: "Verizon",
+      region: "North America",
+      subscribers: "118M",
+      revenue: "$140B",
+      technology: "mmWave 5G",
+      rank: 3,
+      specialty: "Premium Services",
+    },
+    {
+      name: "AT&T",
+      region: "North America",
+      subscribers: "210M",
+      revenue: "$168B",
+      technology: "Fiber + 5G",
+      rank: 4,
+      specialty: "Enterprise",
+    },
+    {
+      name: "Orange",
+      region: "Europe/Africa",
+      subscribers: "266M",
+      revenue: "$45B",
+      technology: "Multi-region",
+      rank: 5,
+      specialty: "Convergence",
+    },
+    {
+      name: "T-Mobile",
+      region: "Global",
+      subscribers: "315M",
+      revenue: "$80B",
+      technology: "Un-carrier",
+      rank: 6,
+      specialty: "Customer Experience",
+    },
+  ]
+
+  const technologyTrends = [
+    {
+      name: "5G Standalone",
+      adoption: "28%",
+      growth: "+35%",
+      impact: "High",
+      timeline: "2024-2026",
+      description: "Full 5G architecture deployment",
+      keyFeatures: ["Ultra-low latency", "Network slicing", "Edge computing", "Massive IoT"],
+    },
+    {
+      name: "Open RAN",
+      adoption: "15%",
+      growth: "+120%",
+      impact: "Transformative",
+      timeline: "2024-2027",
+      description: "Open radio access network standards",
+      keyFeatures: ["Vendor interoperability", "Cost reduction", "Innovation acceleration", "Supply chain diversity"],
+    },
+    {
+      name: "Private Networks",
+      adoption: "8%",
+      growth: "+85%",
+      impact: "Significant",
+      timeline: "2024-2025",
+      description: "Enterprise-dedicated cellular networks",
+      keyFeatures: ["Enhanced security", "Customized coverage", "Industry 4.0", "Critical communications"],
+    },
+    {
+      name: "Satellite Integration",
+      adoption: "5%",
+      growth: "+200%",
+      impact: "Revolutionary",
+      timeline: "2025-2030",
+      description: "Terrestrial-satellite network convergence",
+      keyFeatures: ["Global coverage", "Disaster resilience", "Rural connectivity", "IoT backhauling"],
+    },
+  ]
+
+  const emergingTech = [
+    {
+      title: "6G Research",
+      status: "Development",
+      timeline: "2030+",
+      investment: "$50B+",
+      leaders: ["Nokia", "Ericsson", "Samsung"],
+      capabilities: "Terahertz frequencies, AI-native, holographic communications",
+    },
+    {
+      title: "Quantum Communications",
+      status: "Pilot",
+      timeline: "2027+",
+      investment: "$12B+",
+      leaders: ["IBM", "Google", "Huawei"],
+      capabilities: "Unhackable security, quantum internet, distributed computing",
+    },
+    {
+      title: "AI Network Orchestration",
+      status: "Deployment",
+      timeline: "2024+",
+      investment: "$25B+",
+      leaders: ["Cisco", "Juniper", "VMware"],
+      capabilities: "Self-healing networks, predictive maintenance, automated optimization",
+    },
+  ]
+
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-white">
       {/* Header */}
-      <header className="sticky top-0 z-40 w-full border-b bg-background">
-        <div className="container flex h-16 items-center justify-between py-4">
-          <div className="flex items-center gap-2 md:gap-4">
-            <Button variant="outline" size="icon" className="md:hidden">
-              <Menu className="h-5 w-5" />
-              <span className="sr-only">القائمة</span>
-            </Button>
-            <Link href="/" className="flex items-center space-x-2 ml-2">
-              <span className="text-xl font-bold">مدونة الاتصالات العربية</span>
-            </Link>
-          </div>
-          <nav className="hidden md:flex items-center gap-6 text-sm">
-            <Link href="#" className="font-medium transition-colors hover:text-primary">
-              الرئيسية
-            </Link>
-            <Link href="#" className="font-medium transition-colors hover:text-primary">
-              المقالات
-            </Link>
-            <Link href="#" className="font-medium transition-colors hover:text-primary">
-              التقنيات
-            </Link>
-            <Link href="#" className="font-medium transition-colors hover:text-primary">
-              الأخبار
-            </Link>
-            <Link href="#" className="font-medium transition-colors hover:text-primary">
-              اتصل بنا
-            </Link>
-          </nav>
-          <div className="flex items-center gap-2">
-            <form className="hidden md:flex">
-              <div className="relative">
-                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted-foreground" />
-                <label htmlFor="search-header" className="sr-only">
-                  بحث
-                </label>
-                <Input id="search-header" type="search" placeholder="بحث..." className="w-48 pl-8 md:w-64 lg:w-80" />
+      <div className="border-b border-gray-100 bg-slate-50">
+        <div className="max-w-7xl mx-auto px-6 py-12">
+          <motion.div
+            className="text-center"
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6 }}
+          >
+            <div className="inline-flex items-center gap-3 mb-6">
+              <div className="w-12 h-12 bg-slate-900 rounded-xl flex items-center justify-center">
+                <Globe className="h-6 w-6 text-white" />
               </div>
-            </form>
-            <Button variant="ghost" size="icon" className="md:hidden">
-              <Search className="h-5 w-5" />
-              <span className="sr-only">بحث</span>
-            </Button>
-          </div>
+              <h1 className="text-4xl font-bold text-slate-900">Global Telecom Intelligence</h1>
+            </div>
+            <p className="text-lg text-slate-600 max-w-3xl mx-auto">
+              Real-time insights into worldwide telecommunications infrastructure, market dynamics, and emerging
+              technologies
+            </p>
+          </motion.div>
         </div>
-      </header>
+      </div>
 
-      <main>
-        {/* Hero Section */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-          <div className="container px-4 md:px-6">
-            <div className="grid gap-6 lg:grid-cols-2 lg:gap-12 items-center">
-              <div className="space-y-4">
-                <h1 className="text-3xl font-bold tracking-tighter sm:text-4xl md:text-5xl">
-                  أحدث التطورات في عالم الاتصالات
-                </h1>
-                <p className="max-w-[600px] text-muted-foreground md:text-xl">
-                  اكتشف أحدث التقنيات والابتكارات في مجال الاتصالات وتكنولوجيا المعلومات من خلال مدونتنا المتخصصة
-                </p>
-                <div className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <Button>اقرأ المزيد</Button>
-                  <Button variant="outline">اشترك في النشرة الإخبارية</Button>
+      <div className="max-w-7xl mx-auto px-6 py-8">
+        {/* Key Metrics */}
+        <motion.div
+          className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.2 }}
+        >
+          {globalMetrics.map((metric, index) => (
+            <Card key={index} className="border border-gray-200 hover:shadow-lg transition-shadow duration-300">
+              <CardContent className="p-6">
+                <div className="flex items-start justify-between mb-4">
+                  <div className="p-2 bg-slate-100 rounded-lg">{metric.icon}</div>
+                  <Badge variant="outline" className="text-green-600 border-green-200 bg-green-50">
+                    {metric.change}
+                  </Badge>
                 </div>
-              </div>
-              <div className="mx-auto lg:mr-0 relative h-[250px] sm:h-[300px] md:h-[350px] lg:h-[400px] w-full">
-                <Image
-                  src="/placeholder.svg?height=600&width=800"
-                  alt="صورة توضيحية لتكنولوجيا الاتصالات"
-                  fill
-                  className="object-cover rounded-lg"
-                  priority
-                />
-              </div>
+                <div className="space-y-1">
+                  <h3 className="text-2xl font-bold text-slate-900">{metric.value}</h3>
+                  <p className="text-sm font-medium text-slate-700">{metric.title}</p>
+                  <p className="text-xs text-slate-500">{metric.description}</p>
+                </div>
+              </CardContent>
+            </Card>
+          ))}
+        </motion.div>
+
+        {/* Regional Analysis */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
+        >
+          <div className="flex items-center justify-between mb-8">
+            <h2 className="text-2xl font-bold text-slate-900">Regional Market Analysis</h2>
+            <div className="flex gap-2">
+              <Button
+                variant={activeTab === "overview" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveTab("overview")}
+              >
+                Overview
+              </Button>
+              <Button
+                variant={activeTab === "growth" ? "default" : "outline"}
+                size="sm"
+                onClick={() => setActiveTab("growth")}
+              >
+                Growth
+              </Button>
             </div>
           </div>
-        </section>
 
-        {/* Featured Posts */}
-        <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">أحدث المقالات</h2>
-                <p className="max-w-[900px] text-muted-foreground text-base sm:text-lg md:text-xl/relaxed">
-                  اطلع على أحدث المقالات والتحليلات في مجال الاتصالات وتكنولوجيا المعلومات
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-1 gap-6 py-12 md:grid-cols-2 lg:grid-cols-3">
-              {[
-                {
-                  title: "تقنية الجيل الخامس وتأثيرها على المستقبل",
-                  description: "استكشاف تقنية الجيل الخامس وكيف ستغير مستقبل الاتصالات والإنترنت",
-                  date: "١٠ مايو ٢٠٢٥",
-                  category: "تقنيات",
-                  image: "5g-technology-tower-future",
-                },
-                {
-                  title: "الذكاء الاصطناعي في قطاع الاتصالات",
-                  description: "كيف يساهم الذكاء الاصطناعي في تطوير خدمات الاتصالات وتحسين تجربة المستخدم",
-                  date: "٥ مايو ٢٠٢٥",
-                  category: "الذكاء الاصطناعي",
-                  image: "ai-in-telecommunications-network",
-                },
-                {
-                  title: "مستقبل إنترنت الأشياء في المنطقة العربية",
-                  description: "نظرة على تطور إنترنت الأشياء وتطبيقاتها في المنطقة العربية",
-                  date: "١ مايو ٢٠٢٥",
-                  category: "إنترنت الأشياء",
-                  image: "iot-devices-arabic-region-connectivity",
-                },
-              ].map((post, index) => (
-                <Card key={index} className="overflow-hidden">
-                  <div className="relative h-60 w-full">
-                    <Image
-                      src={`/placeholder.svg?height=400&width=600&query=${post.image}`}
-                      alt={post.title}
-                      fill
-                      className="object-cover"
-                    />
-                  </div>
-                  <CardHeader>
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <span>{post.category}</span>
-                      <span>•</span>
-                      <span>{post.date}</span>
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            {regions.map((region) => (
+              <Card
+                key={region.id}
+                className={`border cursor-pointer transition-all duration-300 hover:shadow-md ${
+                  selectedRegion === region.id ? "border-slate-900 shadow-md" : "border-gray-200 hover:border-gray-300"
+                }`}
+                onClick={() => setSelectedRegion(region.id)}
+              >
+                <CardContent className="p-6">
+                  <div className="flex items-center gap-3 mb-4">
+                    <span className="text-2xl">{region.flag}</span>
+                    <div>
+                      <h3 className="font-semibold text-slate-900">{region.name}</h3>
+                      <p className="text-sm text-slate-500">Market Share: {region.marketShare}</p>
                     </div>
-                    <CardTitle className="line-clamp-2">{post.title}</CardTitle>
-                    <CardDescription className="line-clamp-3">{post.description}</CardDescription>
-                  </CardHeader>
-                  <CardFooter>
-                    <Link href="#" passHref legacyBehavior>
-                      <Button variant="link" className="p-0">
-                        اقرأ المزيد
-                        <ChevronLeft className="ml-1 h-4 w-4" />
-                      </Button>
-                    </Link>
-                  </CardFooter>
-                </Card>
-              ))}
-            </div>
-            <div className="flex justify-center">
-              <Button variant="outline">عرض المزيد من المقالات</Button>
-            </div>
+                  </div>
+                  <div className="space-y-3">
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Connections</span>
+                      <span className="font-medium">{region.connections}</span>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Growth Rate</span>
+                      <Badge variant="outline" className="text-xs">
+                        {region.growth}
+                      </Badge>
+                    </div>
+                    <div className="flex justify-between items-center">
+                      <span className="text-sm text-slate-600">Infrastructure</span>
+                      <span className="text-sm font-medium">{region.infrastructure}</span>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </section>
+        </motion.div>
 
-        {/* Categories */}
-        <section className="w-full py-12 md:py-24 lg:py-32 bg-muted">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">تصفح حسب الفئة</h2>
-                <p className="max-w-[900px] text-muted-foreground text-base sm:text-lg md:text-xl/relaxed">
-                  استكشف مقالاتنا المصنفة حسب المواضيع المختلفة في مجال الاتصالات
-                </p>
-              </div>
-            </div>
-            <div className="mx-auto grid max-w-5xl grid-cols-2 gap-6 py-12 md:grid-cols-3 lg:grid-cols-4">
-              {[
-                { name: "الجيل الخامس", count: 24, href: "#" },
-                { name: "الذكاء الاصطناعي", count: 18, href: "#" },
-                { name: "إنترنت الأشياء", count: 16, href: "#" },
-                { name: "الأمن السيبراني", count: 12, href: "#" },
-                { name: "الحوسبة السحابية", count: 10, href: "#" },
-                { name: "البيانات الضخمة", count: 8, href: "#" },
-                { name: "الاتصالات الفضائية", count: 6, href: "#" },
-                { name: "الشبكات اللاسلكية", count: 14, href: "#" },
-              ].map((category, index) => (
-                <Link
-                  key={index}
-                  href={category.href}
-                  className="focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 rounded-lg"
-                >
-                  <Card className="flex h-full flex-col items-center justify-center p-6 text-center hover:bg-accent hover:text-accent-foreground transition-colors">
-                    <CardContent className="p-0">
-                      <p className="text-lg font-bold">{category.name}</p>
-                      <p className="text-sm text-muted-foreground">{category.count} مقال</p>
-                    </CardContent>
-                  </Card>
-                </Link>
-              ))}
-            </div>
+        {/* Top Operators */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.6 }}
+        >
+          <h2 className="text-2xl font-bold text-slate-900 mb-8">Leading Global Operators</h2>
+          <div className="space-y-4">
+            {topOperators.map((operator, index) => (
+              <Card key={index} className="border border-gray-200 hover:shadow-md transition-shadow duration-300">
+                <CardContent className="p-6">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-4">
+                      <div className="w-10 h-10 bg-slate-900 rounded-lg flex items-center justify-center text-white font-bold">
+                        {operator.rank}
+                      </div>
+                      <div>
+                        <h3 className="font-semibold text-slate-900">{operator.name}</h3>
+                        <p className="text-sm text-slate-500">{operator.region}</p>
+                      </div>
+                    </div>
+                    <div className="flex items-center gap-8 text-sm">
+                      <div className="text-center">
+                        <div className="font-semibold text-slate-900">{operator.subscribers}</div>
+                        <div className="text-slate-500">Subscribers</div>
+                      </div>
+                      <div className="text-center">
+                        <div className="font-semibold text-slate-900">{operator.revenue}</div>
+                        <div className="text-slate-500">Revenue</div>
+                      </div>
+                      <div className="text-center">
+                        <Badge variant="outline">{operator.technology}</Badge>
+                        <div className="text-slate-500 mt-1">{operator.specialty}</div>
+                      </div>
+                      <ChevronRight className="h-5 w-5 text-slate-400" />
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </section>
+        </motion.div>
 
-        {/* Newsletter */}
-        <section className="w-full py-12 md:py-24 lg:py-32">
-          <div className="container px-4 md:px-6">
-            <div className="flex flex-col items-center justify-center space-y-4 text-center">
-              <div className="space-y-2">
-                <h2 className="text-3xl font-bold tracking-tighter sm:text-5xl">اشترك في نشرتنا الإخبارية</h2>
-                <p className="max-w-[900px] text-muted-foreground text-base sm:text-lg md:text-xl/relaxed">
-                  احصل على آخر الأخبار والمقالات في مجال الاتصالات وتكنولوجيا المعلومات
-                </p>
-              </div>
-              <div className="w-full max-w-sm space-y-2">
-                <form className="flex flex-col gap-2 min-[400px]:flex-row">
-                  <label htmlFor="newsletter-email" className="sr-only">
-                    بريدك الإلكتروني
-                  </label>
-                  <Input
-                    id="newsletter-email"
-                    type="email"
-                    placeholder="بريدك الإلكتروني"
-                    required
-                    className="flex-1"
-                  />
-                  <Button type="submit">اشترك</Button>
-                </form>
-                <p className="text-xs text-muted-foreground">
-                  {"لن نشارك بريدك الإلكتروني مع أي جهة أخرى. اقرأ"}{" "}
-                  <Link href="#" className="underline underline-offset-2">
-                    سياسة الخصوصية
-                  </Link>
-                </p>
-              </div>
-            </div>
+        {/* Technology Trends */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.8 }}
+        >
+          <h2 className="text-2xl font-bold text-slate-900 mb-8">Technology Adoption Trends</h2>
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {technologyTrends.map((tech, index) => (
+              <Card key={index} className="border border-gray-200">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <CardTitle className="text-lg">{tech.name}</CardTitle>
+                    <div className="flex items-center gap-2">
+                      <Badge variant="outline" className="text-xs">
+                        {tech.timeline}
+                      </Badge>
+                      <Badge
+                        variant="outline"
+                        className={`text-xs ${
+                          tech.impact === "High"
+                            ? "text-orange-600 border-orange-200"
+                            : tech.impact === "Transformative"
+                              ? "text-purple-600 border-purple-200"
+                              : tech.impact === "Significant"
+                                ? "text-blue-600 border-blue-200"
+                                : "text-red-600 border-red-200"
+                        }`}
+                      >
+                        {tech.impact}
+                      </Badge>
+                    </div>
+                  </div>
+                  <p className="text-sm text-slate-600">{tech.description}</p>
+                </CardHeader>
+                <CardContent>
+                  <div className="flex items-center gap-4 mb-4">
+                    <div className="flex-1">
+                      <div className="flex justify-between text-sm mb-1">
+                        <span>Adoption Rate</span>
+                        <span className="font-medium">{tech.adoption}</span>
+                      </div>
+                      <div className="w-full bg-gray-200 rounded-full h-2">
+                        <div className="bg-slate-900 h-2 rounded-full" style={{ width: tech.adoption }}></div>
+                      </div>
+                    </div>
+                    <div className="text-right">
+                      <div className="text-sm text-slate-500">Growth</div>
+                      <div className="font-semibold text-green-600">{tech.growth}</div>
+                    </div>
+                  </div>
+                  <div className="grid grid-cols-2 gap-2">
+                    {tech.keyFeatures.map((feature, idx) => (
+                      <div key={idx} className="flex items-center gap-2 text-sm">
+                        <div className="w-1.5 h-1.5 bg-slate-400 rounded-full"></div>
+                        <span className="text-slate-600">{feature}</span>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
           </div>
-        </section>
-      </main>
+        </motion.div>
 
-      {/* Footer */}
-      <footer className="w-full border-t bg-background">
-        <div className="container flex flex-col gap-6 py-8 md:py-12">
-          <div className="grid grid-cols-1 gap-8 sm:grid-cols-2 md:grid-cols-4">
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium">عن المدونة</h3>
-              <p className="text-sm text-muted-foreground">
-                مدونة متخصصة في مجال الاتصالات وتكنولوجيا المعلومات تقدم أحدث الأخبار والتحليلات
+        {/* Emerging Technologies */}
+        <motion.div
+          className="mb-12"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.0 }}
+        >
+          <h2 className="text-2xl font-bold text-slate-900 mb-8">Emerging Technologies</h2>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {emergingTech.map((tech, index) => (
+              <Card key={index} className="border border-gray-200">
+                <CardContent className="p-6">
+                  <div className="mb-4">
+                    <div className="flex items-center justify-between mb-2">
+                      <h3 className="font-semibold text-slate-900">{tech.title}</h3>
+                      <Badge variant="outline" className="text-xs">
+                        {tech.status}
+                      </Badge>
+                    </div>
+                    <p className="text-sm text-slate-600 mb-3">{tech.capabilities}</p>
+                  </div>
+                  <div className="space-y-3 text-sm">
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Timeline</span>
+                      <span className="font-medium">{tech.timeline}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-500">Investment</span>
+                      <span className="font-medium">{tech.investment}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 block mb-1">Key Players</span>
+                      <div className="flex flex-wrap gap-1">
+                        {tech.leaders.map((leader, idx) => (
+                          <Badge key={idx} variant="outline" className="text-xs">
+                            {leader}
+                          </Badge>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </motion.div>
+
+        {/* Call to Action */}
+        <motion.div
+          className="text-center"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 1.2 }}
+        >
+          <Card className="border border-gray-200 bg-slate-50">
+            <CardContent className="p-12">
+              <h3 className="text-2xl font-bold mb-4 text-slate-900">Stay Connected to Innovation</h3>
+              <p className="text-slate-600 mb-8 max-w-2xl mx-auto">
+                Access comprehensive market intelligence, technology insights, and strategic analysis to navigate the
+                evolving telecommunications landscape.
               </p>
-            </div>
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium">روابط سريعة</h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    الرئيسية
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    المقالات
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    التقنيات
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    الأخبار
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium">الفئات</h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    الجيل الخامس
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    الذكاء الاصطناعي
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    إنترنت الأشياء
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    الأمن السيبراني
-                  </Link>
-                </li>
-              </ul>
-            </div>
-            <div className="space-y-3">
-              <h3 className="text-lg font-medium">تواصل معنا</h3>
-              <ul className="space-y-2 text-sm">
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    اتصل بنا
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    من نحن
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    سياسة الخصوصية
-                  </Link>
-                </li>
-                <li>
-                  <Link href="#" className="text-muted-foreground hover:text-foreground">
-                    الشروط والأحكام
-                  </Link>
-                </li>
-              </ul>
-            </div>
-          </div>
-          <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
-            <p className="text-sm text-muted-foreground">© 2025 مدونة الاتصالات العربية. جميع الحقوق محفوظة.</p>
-            <div className="flex gap-4">
-              <Link href="#" className="text-muted-foreground hover:text-foreground" aria-label="Twitter">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <path d="M22 4s-.7 2.1-2 3.4c1.6 10-9.4 17.3-18 11.6 2.2.1 4.4-.6 6-2C3 15.5.5 9.6 3 5c2.2 2.6 5.6 4.1 9 4-.9-4.2 4-6.6 7-3.8 1.1 0 3-1.2 3-1.2z"></path>
-                </svg>
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground" aria-label="Facebook">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <path d="M18 2h-3a5 5 0 0 0-5 5v3H7v4h3v8h4v-8h3l1-4h-4V7a1 1 0 0 1 1-1h3z"></path>
-                </svg>
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground" aria-label="Instagram">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <rect width="20" height="20" x="2" y="2" rx="5" ry="5"></rect>
-                  <path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"></path>
-                  <line x1="17.5" x2="17.51" y1="6.5" y2="6.5"></line>
-                </svg>
-              </Link>
-              <Link href="#" className="text-muted-foreground hover:text-foreground" aria-label="LinkedIn">
-                <svg
-                  xmlns="http://www.w3.org/2000/svg"
-                  width="24"
-                  height="24"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="2"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  className="h-5 w-5"
-                >
-                  <path d="M16 8a6 6 0 0 1 6 6v7h-4v-7a2 2 0 0 0-2-2 2 2 0 0 0-2 2v7h-4v-7a6 6 0 0 1 6-6z"></path>
-                  <rect width="4" height="12" x="2" y="9"></rect>
-                  <circle cx="4" cy="4" r="2"></circle>
-                </svg>
-              </Link>
-            </div>
-          </div>
-        </div>
-      </footer>
+              <div className="flex flex-wrap justify-center gap-4">
+                <Button size="lg" className="bg-slate-900 hover:bg-slate-800">
+                  Get Market Report
+                </Button>
+                <Button size="lg" variant="outline">
+                  Technology Roadmap
+                </Button>
+                <Button size="lg" variant="outline">
+                   Industry Analysis
+                </Button>
+              </div>
+            </CardContent>
+          </Card>
+        </motion.div>
+      </div>
     </div>
   )
 }
